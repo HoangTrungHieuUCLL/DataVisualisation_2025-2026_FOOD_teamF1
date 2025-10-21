@@ -27,7 +27,7 @@ DB_NAME=food
 ### 3 - Add data to your local pgAdmin4
 **Step 1:** In your local port, create a database named `food` and create a table named `product`.
 
-**Step 2:** Right click on the table `product`, choose "Import/Export Data..." and import that data csv file (the cleaned version).
+**Step 2:** Right click on the table `product`, choose "Import/Export Data..." and import `view_food_clean.csv` to your database.
 
 ## Run the app
 ### Front-end + Back-end
