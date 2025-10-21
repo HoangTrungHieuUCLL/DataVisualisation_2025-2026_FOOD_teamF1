@@ -2,6 +2,7 @@ import FirstTenProducts from "@components/products/FirstTenProducts";
 import { ProductInput } from "@types";
 import { useEffect, useState } from "react";
 import ProductService from "@services/ProductService";
+import BarcodeSearch from "@components/products/BarcodeSearch";
 
 const Home: React.FC = () => {
 
@@ -27,9 +28,14 @@ const Home: React.FC = () => {
 
 
     return (
-        <div>
-            <FirstTenProducts firstTenProducts={products} />
-        </div>
+        <main>
+            <div>
+                <FirstTenProducts firstTenProducts={products} />
+            </div>
+            <div>
+                <BarcodeSearch />
+            </div>
+        </main>
     );
 };
 
