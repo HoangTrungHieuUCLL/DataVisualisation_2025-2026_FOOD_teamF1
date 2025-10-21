@@ -1,8 +1,34 @@
+import FirstTenProducts from "@components/products/FirstTenProducts";
+import { ProductInput } from "@types";
+import { useEffect, useState } from "react";
+import ProductService from "@services/ProductService";
+
 const Home: React.FC = () => {
+
+    const [products, setProducts] = useState<ProductInput[]>([]);
+
+    useEffect(() => {
+        getFirstTenProducts();
+    }, []);
+
+    const getFirstTenProducts = async () => {
+        try {
+            const response = await ProductService.getFirstTenProducts();
+            if (!response.ok) {
+                console.error("Error fetching first ten products: HTTP", response.status);
+                return;
+            }
+            const data = (await response.json()) as ProductInput[];
+            setProducts(data);
+        } catch (error) {
+            console.error("Error fetching first ten products:", error);
+        }
+    };
+
+
     return (
         <div>
-            <h1>Welcome to the Home Page</h1>
-            <p>This is the main landing page of the application.</p>
+            <FirstTenProducts firstTenProducts={products} />
         </div>
     );
 };
