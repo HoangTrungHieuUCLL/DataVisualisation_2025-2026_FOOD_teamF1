@@ -2,7 +2,7 @@ import faicons as fa
 import plotly.express as px
 
 # Load data and compute static values
-from shared import app_dir, tips
+from shared import app_dir, tips, food_products
 from shinywidgets import output_widget, render_plotly
 
 from shiny import App, reactive, render, ui
@@ -38,71 +38,117 @@ app_ui = ui.page_sidebar(
         ui.input_action_button("reset", "Reset filter"),
         open="desktop",
     ),
+    # ui.layout_columns(
+    #     ui.value_box(
+    #         "Total tippers", ui.output_ui("total_tippers"), showcase=ICONS["user"]
+    #     ),
+    #     ui.value_box(
+    #         "Average tip", ui.output_ui("average_tip"), showcase=ICONS["wallet"]
+    #     ),
+    #     ui.value_box(
+    #         "Average bill",
+    #         ui.output_ui("average_bill"),
+    #         showcase=ICONS["currency-dollar"],
+    #     ),
+    #     fill=False,
+    # ),
     ui.layout_columns(
         ui.value_box(
-            "Total tippers", ui.output_ui("total_tippers"), showcase=ICONS["user"]
+            "Total products", ui.output_ui("total_food_products"), showcase=ICONS["user"]
         ),
         ui.value_box(
-            "Average tip", ui.output_ui("average_tip"), showcase=ICONS["wallet"]
+            "Total merged products", ui.output_ui("total_merged_food_products"), showcase=ICONS["user"]
         ),
         ui.value_box(
-            "Average bill",
-            ui.output_ui("average_bill"),
-            showcase=ICONS["currency-dollar"],
+            "Average energy", ui.output_ui("average_energy"), showcase=ICONS["user"]
         ),
         fill=False,
     ),
     ui.layout_columns(
         ui.card(
-            ui.card_header("Tips data"), ui.output_data_frame("table"), full_screen=True
+            ui.card_header("Incomplete products"),
+            ui.output_data_frame("products_with_missing_data_table"),
+            full_screen=True
         ),
         ui.card(
-            ui.card_header(
-                "Total bill vs tip",
-                ui.popover(
-                    ICONS["ellipsis"],
-                    ui.input_radio_buttons(
-                        "scatter_color",
-                        None,
-                        ["none", "sex", "smoker", "day", "time"],
-                        inline=True,
-                    ),
-                    title="Add a color variable",
-                    placement="top",
+            ui.card_header("Choose the product and update the information"),
+            ui.tags.div(
+                ui.tags.button(
+                    "Show HEy",
+                    type="button",
+                    onclick="document.getElementById('hey-output').innerText = 'HEy';",
+                    class_="btn btn-primary",
                 ),
-                class_="d-flex justify-content-between align-items-center",
+                ui.tags.div(id="hey-output", style="marginTop: '.5rem'; fontWeight: '600'"),
             ),
-            output_widget("scatterplot"),
             full_screen=True,
-        ),
-        ui.card(
-            ui.card_header(
-                "Tip percentages",
-                ui.popover(
-                    ICONS["ellipsis"],
-                    ui.input_radio_buttons(
-                        "tip_perc_y",
-                        "Split by:",
-                        ["sex", "smoker", "day", "time"],
-                        selected="day",
-                        inline=True,
-                    ),
-                    title="Add a color variable",
-                ),
-                class_="d-flex justify-content-between align-items-center",
-            ),
-            output_widget("tip_perc"),
-            full_screen=True,
-        ),
-        col_widths=[6, 6, 12],
+        )
     ),
+    # ui.layout_columns(
+    #     ui.card(
+    #         ui.card_header("Tips data"), ui.output_data_frame("table"), full_screen=True
+    #     ),
+    #     ui.card(
+    #         ui.card_header(
+    #             "Total bill vs tip",
+    #             ui.popover(
+    #                 ICONS["ellipsis"],
+    #                 ui.input_radio_buttons(
+    #                     "scatter_color",
+    #                     None,
+    #                     ["none", "sex", "smoker", "day", "time"],
+    #                     inline=True,
+    #                 ),
+    #                 title="Add a color variable",
+    #                 placement="top",
+    #             ),
+    #             class_="d-flex justify-content-between align-items-center",
+    #         ),
+    #         output_widget("scatterplot"),
+    #         full_screen=True,
+    #     ),
+    #     ui.card(
+    #         ui.card_header(
+    #             "Tip percentages",
+    #             ui.popover(
+    #                 ICONS["ellipsis"],
+    #                 ui.input_radio_buttons(
+    #                     "tip_perc_y",
+    #                     "Split by:",
+    #                     ["sex", "smoker", "day", "time"],
+    #                     selected="day",
+    #                     inline=True,
+    #                 ),
+    #                 title="Add a color variable",
+    #             ),
+    #             class_="d-flex justify-content-between align-items-center",
+    #         ),
+    #         output_widget("tip_perc"),
+    #         full_screen=True,
+    #     ),
+    #     col_widths=[6, 6, 12],
+    # ),
     ui.include_css(app_dir / "styles.css"),
-    title="Restaurant tipping",
+    title="Food products",
     fillable=True,
 )
 
 
 def server(input, output, session):
+    @render.ui
+    def total_food_products():
+        return food_products.shape[0]
+    
+    @render.ui
+    def total_merged_food_products():
+        return food_products[food_products['merged_to'].notna()].shape[0]
+    
+    @render.ui
+    def average_energy():
+        # compute average energy, treating missing values as 0.0
+        val = food_products['energy'].fillna(0.0).mean()
+        return f"{val:.2f}"
+    
     @reactive.calc
     def tips_data():
         bill = input.total_bill()
@@ -129,8 +175,18 @@ def server(input, output, session):
             return f"${bill:.2f}"
 
     @render.data_frame
-    def table():
-        return render.DataGrid(tips_data())
+    def products_with_missing_data_table():
+        NUTRITION_VALUES_COLUMNS = [
+            'energy', 'protein', 'fat', 'saturated_fatty_acid','carbohydrates',
+            'sugar', 'starch', 'dietary_fiber', 'salt', 'sodium', 'k', 'ca',
+            'p', 'fe', 'polyols', 'remarks_carbohydrates', 'categories'
+        ]
+        
+        incomplete_products = food_products[food_products[NUTRITION_VALUES_COLUMNS].isnull().any(axis=1)]
+        
+        incomplete_products_brief_columns = incomplete_products[['id', 'name', 'active', 'brands', 'categories', 'barcode']]
+
+        return render.DataGrid(incomplete_products_brief_columns)
 
     @render_plotly
     def scatterplot():
